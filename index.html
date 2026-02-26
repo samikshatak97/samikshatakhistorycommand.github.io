@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>History Alive — Ultimate Royal Edition</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Georgia,serif}
+
+body{
+background:linear-gradient(135deg,#120000,#000);
+color:white;
+overflow-x:hidden;
+}
+
+/* Animated background */
+body::before{
+content:"";
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:radial-gradient(circle,#3a0000 0%,#000 75%);
+animation:bg 12s infinite alternate;
+z-index:-2;
+}
+@keyframes bg{
+from{opacity:.7}
+to{opacity:1}
+}
+
+/* HERO */
+.hero{
+height:100vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:20px;
+}
+
+.title{
+color:gold;
+font-size:2rem;
+margin-bottom:20px;
+text-shadow:0 0 10px rgba(255,215,0,.6);
+}
+
+.panel{
+background:rgba(0,0,0,.6);
+border:2px solid gold;
+padding:20px;
+border-radius:15px;
+width:95%;
+max-width:430px;
+box-shadow:0 0 25px rgba(255,215,0,.3);
+}
+
+input,select,button{
+width:100%;
+padding:12px;
+margin-top:10px;
+border:none;
+border-radius:10px;
+font-size:16px;
+}
+
+button{
+background:linear-gradient(45deg,#8b0000,#b8860b);
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+button:hover{transform:scale(1.03)}
+
+#suggestions{
+background:#111;
+border-radius:8px;
+margin-top:5px;
+text-align:left;
+max-height:150px;
+overflow:auto;
+}
+
+.suggestItem{
+padding:8px;
+cursor:pointer;
+border-bottom:1px solid #333;
+}
+.suggestItem:hover{background:#300}
+
+/* RESULT */
+#result{
+display:none;
+padding:20px;
+animation:fade .7s;
+}
+@keyframes fade{
+from{opacity:0;transform:translateY(20px)}
+to{opacity:1;transform:translateY(0)}
+}
+
+.card{
+max-width:900px;
+margin:auto;
+background:rgba(0,0,0,.6);
+border:2px solid gold;
+padding:20px;
+border-radius:20px;
+}
+
+.card img{
+width:200px;height:200px;
+border-radius:50%;
+object-fit:cover;
+border:3px solid gold;
+margin:15px 0;
+}
+
+.sectionTitle{color:gold;margin-top:10px}
+
+#chatBox{
+margin-top:10px;
+background:#111;
+padding:10px;
+border-radius:10px;
+max-height:220px;
+overflow:auto;
+text-align:left;
+font-size:14px;
+}
+
+.user{color:#ffb347}
+.ai{color:white}
+
+.back{
+margin-top:15px;
+display:inline-block;
+padding:10px 20px;
+background:#300;
+border:1px solid gold;
+border-radius:10px;
+cursor:pointer;
+}
+
+@media(max-width:600px){
+.title{font-size:1.5rem}
+}
+</style>
+</head>
+
+<body>
+
+<div class="hero" id="home">
+<h1 class="title">🌍 HISTORY ALIVE — ROYAL EDITION</h1>
+
+<div class="panel">
+<input id="searchBox" placeholder="Search any historical personality..." oninput="showSuggestions()">
+
+<div id="suggestions"></div>
+
+<select id="lang">
+<option value="en-US">English</option>
+<option value="hi-IN">Hindi</option>
+<option value="bn-IN">Bengali</option>
+<option value="ta-IN">Tamil</option>
+<option value="kn-IN">Kannada</option>
+<option value="ml-IN">Malayalam</option>
+<option value="fr-FR">French</option>
+</select>
+
+<button onclick="searchPerson()">Explore Legend</button>
+</div>
+</div>
+
+<div id="result">
+<div class="card">
+
+<h2 id="name"></h2>
+<img id="img">
+
+<h3 class="sectionTitle">📜 Introduction</h3>
+<p id="bio"></p>
+
+<h3 class="sectionTitle">⭐ Why Famous</h3>
+<p id="famous"></p>
+
+<button onclick="speak()">🔊 Hear Voice</button>
+
+<h3 class="sectionTitle">💬 Ask the Personality</h3>
+<div id="chatBox"></div>
+
+<input id="chatInput" placeholder="Ask something...">
+<button onclick="chat()">Send</button>
+
+<div class="back" onclick="goBack()">⬅ Back</div>
+</div>
+</div>
+
+<script>
+let currentBio="",currentName="",famousLine="";
+
+/* SMART SUGGESTIONS */
+async function showSuggestions(){
+let q=document.getElementById("searchBox").value.trim();
+let box=document.getElementById("suggestions");
+if(q.length<3){box.innerHTML="";return;}
+
+let url=`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&origin=*`;
+let res=await fetch(url);
+let data=await res.json();
+
+box.innerHTML="";
+data.query.search.slice(0,5).forEach(item=>{
+let d=document.createElement("div");
+d.className="suggestItem";
+d.innerText=item.title;
+d.onclick=()=>{
+document.getElementById("searchBox").value=item.title;
+box.innerHTML="";
+};
+box.appendChild(d);
+});
+}
+
+/* MAIN SEARCH */
+async function searchPerson(){
+
+let q=document.getElementById("searchBox").value.trim();
+if(!q)return alert("Enter a name");
+
+try{
+let searchURL=`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&origin=*`;
+let sres=await fetch(searchURL);
+let sdata=await sres.json();
+
+if(!sdata.query.search.length) throw Error();
+
+let title=sdata.query.search[0].title;
+
+let sumURL=`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+let res=await fetch(sumURL);
+let data=await res.json();
+
+document.getElementById("home").style.display="none";
+document.getElementById("result").style.display="block";
+
+currentName=data.title;
+currentBio=data.extract || "No information available.";
+famousLine=currentBio.split(".")[0];
+
+name.innerText=currentName;
+bio.innerText=currentBio;
+famous.innerText=famousLine;
+
+img.src=data.thumbnail?data.thumbnail.source:"https://via.placeholder.com/200";
+
+chatBox.innerHTML=`<div class="ai">${currentName}: Ask me about my achievements or why I am famous.</div>`;
+
+setTimeout(()=>speak(),500);
+
+}catch{
+alert("Could not find personality.");
+}
+}
+
+/* VOICE */
+function speak(){
+speechSynthesis.cancel();
+let msg=new SpeechSynthesisUtterance(currentBio);
+msg.lang=document.getElementById("lang").value;
+speechSynthesis.speak(msg);
+}
+
+/* SMART CHAT */
+function chat(){
+let input=document.getElementById("chatInput");
+let q=input.value.trim().toLowerCase();
+if(!q)return;
+
+chatBox.innerHTML+=`<div class="user">You: ${input.value}</div>`;
+
+let reply="";
+if(q.includes("why")||q.includes("famous"))
+reply=`${currentName}: I am mainly known because ${famousLine}.`;
+else if(q.includes("contribution")||q.includes("achievement"))
+reply=`${currentName}: My major contribution is described as — ${famousLine}.`;
+else if(q.includes("who"))
+reply=`${currentName}: ${famousLine}.`;
+else
+reply=`${currentName}: According to history, ${currentBio.substring(0,220)}...`;
+
+chatBox.innerHTML+=`<div class="ai">${reply}</div>`;
+chatBox.scrollTop=chatBox.scrollHeight;
+input.value="";
+}
+
+/* BACK */
+function goBack(){
+speechSynthesis.cancel();
+result.style.display="none";
+home.style.display="flex";
+}
+</script>
+
+</body>
+  </html>
